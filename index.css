@@ -4,6 +4,16 @@ html, body {
     padding: 0;
 }
 
+/**************************** NAVIGATION ****************************/
+
+#nav-bar-container{
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: 20vh;
+}
+
+
 header {
     font-family: Inter;
     background: linear-gradient( rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5) ), url('images/main-image.png');
@@ -11,15 +21,55 @@ header {
     height: 20vh;
 }
 
+/*************************** LINKS **************************/
+
 a {
     font-family: inherit;
     font-weight: 500;
     font-size: 1.5rem;
     color: #FFFFFF;
+}
 
+.add-to-watchlist-btn,.read-more-btn {
+    background-color: white;
+    border: none;
+}
 
+#search-btn {
+    font-family: inherit;
+    background: #F9FAFB;
+    color: #374151;
+    padding: 0.5em 1em 0.5em 1em;
+    border: 1px solid #D1D5DB;
+    border-left:none;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    box-shadow: 0px 1px 2px 0px #0000000D;
+    width: 15%;
+}
+
+/************************** LAYOUT *************************/
+
+.movie{
+    display: flex;
+    gap: 1.5em;
+    width: 100%;
 
 }
+
+.section {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+
+}
+
+.movie-poster{
+    width: 10%;
+}
+
+
+/************************ TYPOGRAPHY **************************/
 
 h1 {
     font-family: inherit;
@@ -30,22 +80,33 @@ h1 {
 
 }
 
-#movie-search {
+#movies-list{
+    width: 85%;
+    margin: auto auto;
+}
+
+
+.movie-title{
+    font-weight: 500;
+    font-size: 18px;
+    width:40%;
+
+}
+
+
+#movie-search-field {
     font-family: inherit;
     font-weight: 500;
+    font-size: 16px;
+    background: url('icons/search-solid.svg') white no-repeat 0.8em 0.6em;
+    padding: 0.5em 13.25em 0.5em 2.5em;
+    background-size: 1rem;
     border: 1px solid #D1D5DB;
-    box-shadow: 0px 1px 2px 0px #0000000D;
-    width: 462;
-    height: 38;
-    top: 189px;
-    left: 44px;
     border-top-left-radius: 6px;
     border-bottom-left-radius: 6px;
     border-width: 1px;
-    font-size: 16px;
-    background: url('icons/search-solid.svg') white no-repeat 0.8em 0.6em;
-    background-size: 1rem;
-    padding: 0.5em 13.25em 0.5em 2.5em;
+    width: 70%;
+    box-shadow: 0px 1px 2px 0px #0000000D;
     outline:none
 }
 
@@ -55,27 +116,5 @@ h1 {
     margin-top: -1.25em;
 }
 
-#search-btn {
-    font-family: inherit;
-    box-shadow: 0px 1px 2px 0px #0000000D;
-    width: 120;
-    height: 38;
-    padding-top: 9px;
-    padding-right: 11px;
-    padding-bottom: 9px;
-    padding-left: 17px;
-    border-left:none;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
-    color: #374151;
-    background: #F9FAFB;
-    border: 1px solid #D1D5DB;
 
-}
-
-#nav-bar-container{
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    height: 20vh;
-}
+/* ************************** MEDIA QUERY **************************/
