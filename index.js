@@ -5,38 +5,52 @@ let isExpanded = false
 // Your long text
 let fullText = ''
 // How many characters you want to show initially
-const maxLength = 200
+const maxLength = 140
 let isToggleAdded = true
 let readMoreBtnStr
-
-// function addEventListenerToMoviesList(){
-//     const moviesList = document.getElementById('movies-list')
-//     moviesList.addEventListener('click', (e) => {
-//     })
-// }
+let btnsArr = []
 
 document.addEventListener( 'click', async e => {
-    const uuid = e.target.dataset.readMoreBtnUuid
-    if(e.target.id === 'search-btn') {  
-        searchBtnClickHandler()      
-    } else if(uuid) {
-        viewMoreBtnClickHandler(uuid)
+    const btnId = e.target.dataset.readMoreBtnUuid
+    const btnInfo = btnsArr.find(btn => btn.movieId === btnId)
+
+    if(e.target.id === 'search-btn') {
+        searchBtnClickHandler()
+    } else if(btnInfo) {
+
+        viewMoreBtnClickHandler(btnInfo)
     }
 })
 
-async function searchBtnClickHandler() {
+async function initBtnsArr(btnInfo) {
     const response = await fetch(`http://www.omdbapi.com/?apikey=8f815d17&s=${movieSearchField.value}`)
     const data = await response.json()
-
+    
     if(data.Response === "False"){
         console.error(data.Error)
         return
-    }    
+    }
+    
+    btnsArr = []
+    data.Search.forEach( movie => btnsArr.push(
+        {
+            movieId: movie.imdbID,
+            isExpanded: false
+        }
+    ))
     render(data)
 }
 
-function viewMoreBtnClickHandler(uuid){
+function searchBtnClickHandler() {
+    initBtnsArr()
+}
 
+function viewMoreBtnClickHandler(btnInfo){
+    btnInfo.isExpanded = !btnInfo.isExpanded
+    renderMoviePlot(btnInfo)
+    
+
+    
 }
 
 async function getMoviesList(moviesData){
@@ -50,8 +64,9 @@ async function getMoviesList(moviesData){
                 console.error(data.Error)
                 return
             }    
-        
             fullText = data.Plot
+            console.log(fullText)
+
             return `
             <div class="movie">
                 <img class="movie-poster" src="${data.Poster}" alt="a movie poster">
@@ -67,9 +82,9 @@ async function getMoviesList(moviesData){
                         <button class="add-to-watchlist-btn"><i class="fa fa-plus-circle" aria-hidden="true" style="font-size:  16px"></i></button>
                         <p>Watchlist</p>
                     </div>
-                    <div id="plot-text">
+                    <div id="plot-text" data-movie-plot="${fullText}">
                         ${fullText.substring(0, maxLength)}
-                        <button id="read-more-btn" data-read-more-btn-uuid="${crypto.randomUUID()}">Read more</button>
+                        ${fullText.length >= maxLength ? `<button id="read-more-btn" data-read-more-btn-uuid="${movie.imdbID}">...Read more</button>` : ''}
                     </div>
                 </div>
             </div>`
@@ -77,6 +92,18 @@ async function getMoviesList(moviesData){
     )
 
     return movies.join('')
+}
+
+function renderMoviePlot(info) {
+    const btnEl = document.querySelector(`[data-read-more-btn-uuid~="${info.movieId}"]`)
+    const plot = btnEl.parentElement.dataset.moviePlot
+
+    console.log(plot)
+
+    btnEl.parentElement.innerHTML = `
+        ${info.isExpanded === false ? plot.substring(0, maxLength) : plot}
+        <button id="read-more-btn" data-read-more-btn-uuid="${info.movieId}">${info.isExpanded === false ? '...Read more' : 'Read less'} </button>
+    `
 }
 
 async function render(data){
