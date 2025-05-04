@@ -6,9 +6,15 @@ let isExpanded = false
 let fullText = ''
 // How many characters you want to show initially
 const maxLength = 140
-let isToggleAdded = true
-let readMoreBtnStr
 let btnsArr = []
+
+const STATE = {
+    SEARCHED: 'SEARCHED',
+    NONE: 'NONE',
+    VIEWMORE: 'VIEWMORE'
+}
+
+let state = STATE.NONE
 
 document.addEventListener( 'click', async e => {
     const btnId = e.target.dataset.readMoreBtnUuid
@@ -17,17 +23,18 @@ document.addEventListener( 'click', async e => {
     if(e.target.id === 'search-btn') {
         searchBtnClickHandler()
     } else if(btnInfo) {
-
         viewMoreBtnClickHandler(btnInfo)
     }
 })
 
-async function initBtnsArr(btnInfo) {
+async function searchBtnClickHandler() {
     const response = await fetch(`http://www.omdbapi.com/?apikey=8f815d17&s=${movieSearchField.value}`)
     const data = await response.json()
+    state = STATE.SEARCHED
     
     if(data.Response === "False"){
         console.error(data.Error)
+        render(null, null)
         return
     }
     
@@ -41,20 +48,20 @@ async function initBtnsArr(btnInfo) {
     render(data)
 }
 
-function searchBtnClickHandler() {
-    initBtnsArr()
-}
-
 function viewMoreBtnClickHandler(btnInfo){
     btnInfo.isExpanded = !btnInfo.isExpanded
-    renderMoviePlot(btnInfo)
-    
-
-    
+    state = STATE.VIEWMORE
+    render(null ,btnInfo)
 }
 
 async function getMoviesList(moviesData){
+    if(!moviesData){
+        return `
+            <div class="start-explore" ><p class="start-explore-text">Unable to find what you’re looking for. Please try another search.</p></div>
+        `
+    }
     const movies = await Promise.all(
+
 
         moviesData.Search.map( async movie => {
             const response = await fetch(`http://www.omdbapi.com/?apikey=8f815d17&i=${movie.imdbID}&plot=Short`)
@@ -65,7 +72,6 @@ async function getMoviesList(moviesData){
                 return
             }    
             fullText = data.Plot
-            console.log(fullText)
 
             return `
             <div class="movie">
@@ -82,7 +88,7 @@ async function getMoviesList(moviesData){
                         <button class="add-to-watchlist-btn"><i class="fa fa-plus-circle" aria-hidden="true" style="font-size:  16px"></i></button>
                         <p>Watchlist</p>
                     </div>
-                    <div id="plot-text" data-movie-plot="${fullText}">
+                    <div id="plot-text" data-movie-plot="${encodeURIComponent(fullText)}">
                         ${fullText.substring(0, maxLength)}
                         ${fullText.length >= maxLength ? `<button id="read-more-btn" data-read-more-btn-uuid="${movie.imdbID}">...Read more</button>` : ''}
                     </div>
@@ -94,19 +100,30 @@ async function getMoviesList(moviesData){
     return movies.join('')
 }
 
-function renderMoviePlot(info) {
-    const btnEl = document.querySelector(`[data-read-more-btn-uuid~="${info.movieId}"]`)
-    const plot = btnEl.parentElement.dataset.moviePlot
+function getMoviePlot(info, btnEl) {
+    const plot = decodeURIComponent(btnEl.parentElement.dataset.moviePlot)
 
-    console.log(plot)
-
-    btnEl.parentElement.innerHTML = `
+    return `
         ${info.isExpanded === false ? plot.substring(0, maxLength) : plot}
         <button id="read-more-btn" data-read-more-btn-uuid="${info.movieId}">${info.isExpanded === false ? '...Read more' : 'Read less'} </button>
     `
 }
 
-async function render(data){
-    const moviesHTML = await getMoviesList(data)
-    document.getElementById('movies-list').innerHTML = moviesHTML
+async function render(data, info){
+    if(state === STATE.SEARCHED) {
+        const moviesHTML = await getMoviesList(data)
+        document.getElementById('movies-list').innerHTML = moviesHTML
+    } else if(state === STATE.VIEWMORE){
+        const btnEl = document.querySelector(`[data-read-more-btn-uuid~="${info.movieId}"]`)
+        btnEl.parentElement.innerHTML = getMoviePlot(info, btnEl)
+    } else {
+        console.log('hi')
+        document.getElementById('movies-list').innerHTML = `
+        <div class="start-explore">
+            <i class="fa-solid fa-film fa-2xl" style="color: #d5d5d5; font-size:70px; height: 10px;"></i>
+            <p class="start-explore-text">Start exploring</p>
+        </div>`
+    }
 }
+
+render(null, null)

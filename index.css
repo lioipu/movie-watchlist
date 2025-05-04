@@ -28,6 +28,11 @@ a {
     font-weight: 500;
     font-size: 1.5rem;
     color: #FFFFFF;
+    text-decoration: none;
+}
+
+#watchlist {
+    cursor: pointer;
 }
 
 .add-to-watchlist-btn,#read-more-btn {
@@ -90,6 +95,7 @@ h1 {
 
 #movies-list{
     width: 85%;
+    padding-bottom: 2.5em;
     margin: auto auto;
 }
 
@@ -97,9 +103,21 @@ h1 {
 .movie-title{
     font-weight: 500;
     font-size: 18px;
-    width:40%;
 
 }
+
+.start-explore {
+    text-align: center;
+    margin-top: 20em;
+}
+
+.start-explore-text {
+    color: #DFDDDD;
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 2em;
+}
+
 
 
 #movie-search-field {
