@@ -6,7 +6,7 @@ let isExpanded = false
 let fullText = ''
 // How many characters you want to show initially
 const maxLength = 140
-let btnsArr = []
+const watchlistArr = []
 
 const STATE = {
     SEARCHED: 'SEARCHED',
@@ -17,13 +17,14 @@ const STATE = {
 let state = STATE.NONE
 
 document.addEventListener( 'click', async e => {
-    const btnId = e.target.dataset.readMoreBtnUuid
-    const btnInfo = btnsArr.find(btn => btn.movieId === btnId)
 
-    if(e.target.id === 'search-btn') {
+    if(e.target.id === 'search-btn'){
         searchBtnClickHandler()
-    } else if(btnInfo) {
-        viewMoreBtnClickHandler(btnInfo)
+    } else if(e.target.dataset.readMoreBtnUuid) {
+        console.log(e.target.dataset)
+        viewMoreBtnClickHandler(e.target.dataset.readMoreBtnUuid)
+    } else if(e.target.dataset.addToWatchlistBtnUuid){
+        addToWatchlistBtnClickHandler(e.target.dataset.addToWatchlistBtnUuid)
     }
 })
 
@@ -38,84 +39,88 @@ async function searchBtnClickHandler() {
         return
     }
     
-    btnsArr = []
-    data.Search.forEach( movie => btnsArr.push(
-        {
-            movieId: movie.imdbID,
-            isExpanded: false
-        }
-    ))
     render(data)
 }
 
-function viewMoreBtnClickHandler(btnInfo){
-    btnInfo.isExpanded = !btnInfo.isExpanded
+function viewMoreBtnClickHandler(btnUuid){
+    const btnEl = document.querySelector(`[data-read-more-btn-uuid~="${btnUuid}"]`)
+    btnEl.dataset.isExpanded = btnEl.dataset.isExpanded === 'false' ? 'true' : 'false'
     state = STATE.VIEWMORE
-    render(null ,btnInfo)
+    render(null ,btnUuid)
 }
 
-async function getMoviesList(moviesData){
+function addToWatchlistBtnClickHandler(btnUuid){
+    console.log(btnUuid)
+}
+
+async function getMoreMoviesData(moviesData){
+    const movies = await Promise.all(
+        moviesData.Search.map( async movie => {
+            const response = await fetch(`http://www.omdbapi.com/?apikey=8f815d17&i=${movie.imdbID}&plot=Short`)
+            const data = await response.json()
+            if(data.Response === "False"){
+                console.error(data.Error)
+                return
+            }
+            return data
+        })
+    )
+    return getMoviesList(movies)
+}
+
+function getMoviesList(moviesData){
+    let inWatchlist = false
+    if(watchlistArr.find( watchlistMovie => watchlistMovie.inWatchlist === true )){
+        inWatchlist = true
+    } else {
+        inWatchlist = false
+    }
+
     if(!moviesData){
         return `
             <div class="start-explore" ><p class="start-explore-text">Unable to find what you’re looking for. Please try another search.</p></div>
         `
     }
-    const movies = await Promise.all(
-
-
-        moviesData.Search.map( async movie => {
-            const response = await fetch(`http://www.omdbapi.com/?apikey=8f815d17&i=${movie.imdbID}&plot=Short`)
-            const data = await response.json()
-            
-            if(data.Response === "False"){
-                console.error(data.Error)
-                return
-            }    
-            fullText = data.Plot
-
+    const moviesStr = moviesData.map( movie => { 
             return `
             <div class="movie">
-                <img class="movie-poster" src="${data.Poster}" alt="a movie poster">
+                <img class="movie-poster" src="${movie.Poster}" alt="a movie poster">
                 <div class="movie-content">
                     <div class="section">
-                        <h3 class="movie-title">${data.Title}</h3>
+                        <h3 class="movie-title">${movie.Title}</h3>
                         <i class="fa-solid fa-star" style="color: #FEC654"></i>
-                        <p>${data.imdbRating}</p>
+                        <p>${movie.imdbRating}</p>
                     </div>
                     <div class="section">
-                        <p>${data.Runtime}</p>
-                        <p>${data.Genre}</p>
-                        <button class="add-to-watchlist-btn"><i class="fa fa-plus-circle" aria-hidden="true" style="font-size:  16px"></i></button>
-                        <p>Watchlist</p>
+                        <p>${movie.Runtime}</p>
+                        <p>${movie.Genre}</p>
+                        <button class="add-to-watchlist-btn" data-add-to-watchlist-btn-uuid="${movie.imdbID}"><i class="fa fa-plus-circle" aria-hidden="true" style="font-size:  16px" ></i> Watchlist</button>
                     </div>
-                    <div id="plot-text" data-movie-plot="${encodeURIComponent(fullText)}">
-                        ${fullText.substring(0, maxLength)}
-                        ${fullText.length >= maxLength ? `<button id="read-more-btn" data-read-more-btn-uuid="${movie.imdbID}">...Read more</button>` : ''}
+                    <div id="plot-text" data-movie-plot="${encodeURIComponent(movie.Plot)}">
+                        ${movie.Plot.substring(0, maxLength)}
+                        ${movie.Plot.length >= maxLength ? `<button id="read-more-btn" data-in-watchlist="${inWatchlist}" data-is-expanded="false" data-read-more-btn-uuid="${movie.imdbID}">...Read more</button>` : ''}
                     </div>
                 </div>
             </div>`
         })
-    )
-
-    return movies.join('')
+    return moviesStr.join('')
 }
 
-function getMoviePlot(info, btnEl) {
+function getMoviePlot(btnEl) {
     const plot = decodeURIComponent(btnEl.parentElement.dataset.moviePlot)
-
     return `
-        ${info.isExpanded === false ? plot.substring(0, maxLength) : plot}
-        <button id="read-more-btn" data-read-more-btn-uuid="${info.movieId}">${info.isExpanded === false ? '...Read more' : 'Read less'} </button>
+        ${btnEl.dataset.isExpanded === 'false' ? plot.substring(0, maxLength) : plot}
+        <button id="read-more-btn" data-is-expanded="${btnEl.dataset.isExpanded}" data-read-more-btn-uuid="${btnEl.dataset.readMoreBtnUuid}">${btnEl.dataset.isExpanded === 'false' ? '...Read more' : 'Read less'} </button>
     `
 }
 
-async function render(data, info){
+async function render(data, btnUuid){
     if(state === STATE.SEARCHED) {
-        const moviesHTML = await getMoviesList(data)
+        const moviesHTML = await getMoreMoviesData(data)
         document.getElementById('movies-list').innerHTML = moviesHTML
     } else if(state === STATE.VIEWMORE){
-        const btnEl = document.querySelector(`[data-read-more-btn-uuid~="${info.movieId}"]`)
-        btnEl.parentElement.innerHTML = getMoviePlot(info, btnEl)
+        const btnEl = document.querySelector(`[data-read-more-btn-uuid~="${btnUuid}"]`)
+        btnEl.parentElement.innerHTML = getMoviePlot(btnEl)
     } else {
         console.log('hi')
         document.getElementById('movies-list').innerHTML = `

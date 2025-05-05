@@ -37,6 +37,7 @@ a {
 
 .add-to-watchlist-btn,#read-more-btn {
     color: #272727;
+    font-size: 1em;
     background-color: white;
     cursor: pointer;
     border: none;
