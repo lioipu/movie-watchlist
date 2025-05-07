@@ -7,43 +7,68 @@ let fullText = ''
 // How many characters you want to show initially
 const maxLength = 140
 let watchlistArr = []
-
+let state
+let pageState
 const STATE = {
     SEARCHED: 'SEARCHED',
-    NONE: 'NONE',
     VIEWMORE: 'VIEWMORE',
     STARTEXPLORE: 'STARTEXPLOE',
-    WATCHLIST:'WATCHLIST'
+    WATCHLIST:'WATCHLIST',
+    EMPTYWATCHLIST: 'EMPTYWATCHLIST'
 }
 
-let state = STATE.NONE
+window.addEventListener('load', e => {
+    pageState = window.location.pathname
+    console.log(pageState)
+})
 
 document.addEventListener( 'click', async e => {
-
     if(e.target.id === 'search-btn'){
         searchBtnClickHandler()
     } else if(e.target.dataset.readMoreBtnUuid) {
-        console.log(e.target.dataset)
         viewMoreBtnClickHandler(e.target.dataset.readMoreBtnUuid)
     } else if(e.target.dataset.addToWatchlistBtnUuid){
         addToWatchlistBtnClickHandler(e.target.dataset.addToWatchlistBtnUuid)
-    }
+    } 
 })
 
 // localStorage.clear()
-
 if(JSON.parse(localStorage.getItem('watchlist'))){
     watchlistArr = JSON.parse(localStorage.getItem('watchlist'))
-    console.log('localStorage if' )
 } else {
     watchlistArr = []
-    console.log('localStorage else' )
+}
+console.log(JSON.parse(localStorage.getItem('pageState')))
+if(JSON.parse(localStorage.getItem('pageState'))){
+    // page was changed
+    if(JSON.parse(localStorage.getItem('pageState')) !== pageState){
+        localStorage.setItem('pageState', JSON.stringify(pageState))
+        // checking which page we are at and defining the state based on it.
+        if(window.location.pathname === '/index.html'){
+            if(JSON.parse(localStorage.getItem('state'))){
+                state = STATE.STARTEXPLORE
+                localStorage.setItem('state', JSON.stringify(state))
+            }
+        } else if(window.location.pathname === '/watchlist.html'){
+            if(JSON.parse(localStorage.getItem('state'))){
+                if(watchlistArr.length === 0){
+                    state = STATE.EMPTYWATCHLIST
+                    localStorage.setItem('state', JSON.stringify(state))
+                } else {
+                    state = STATE.WATCHLIST
+                    localStorage.setItem('state', JSON.stringify(state))
+                }
+            }
+        }
+    }
+} else {
+    localStorage.setItem('pageState', pageState)
 }
 
 function updateLocalStorage(){
     localStorage.setItem('watchlist', JSON.stringify(watchlistArr))
+    localStorage.setItem('state', JSON.stringify(state))
 }
-
 
 async function searchBtnClickHandler() {
     const response = await fetch(
@@ -69,9 +94,6 @@ function viewMoreBtnClickHandler(btnUuid){
 }
 
 async function addToWatchlistBtnClickHandler(btnUuid){
-    const btnEl = document.querySelector(`[data-add-to-watchlist-btn-uuid~="${btnUuid}"]`)
-    btnEl.dataset.inWatchlist = btnEl.dataset.inWatchlist === 'false' ? 'true' : 'false'
-
     const response = await fetch(
         `http://www.omdbapi.com/?apikey=8f815d17&i=${btnUuid}&plot=Short`
     )
@@ -82,23 +104,27 @@ async function addToWatchlistBtnClickHandler(btnUuid){
         return
     }
     
-    const tmpMovie = watchlistArr.find( movie => movie.data.imdbID === btnUuid)
+    const tmpMovie = watchlistArr.find( movie => movie.imdbID === btnUuid)
     if(!tmpMovie){
         watchlistArr.push(
             {
-                inWatchlist: btnEl.dataset.inWatchlist,
-                data: data
+                inWatchlist: 'true'
             }
         )
-        toggleAddToWatchlistBtnState(btnUuid, watchlistArr[watchlistArr.length - 1].inWatchlist)
+        Object.assign(watchlistArr[watchlistArr.length - 1], data)
+        toggleAddToWatchlistBtnState(
+            btnUuid, watchlistArr[watchlistArr.length - 1].inWatchlist
+        )
     } else {
         const index = watchlistArr.indexOf( tmpMovie )
-        toggleAddToWatchlistBtnState(btnUuid, watchlistArr[index].inWatchlist)
+        toggleAddToWatchlistBtnState(btnUuid, 'false')
         watchlistArr.splice(index, 1)
     }
     updateLocalStorage()
-    console.log(watchlistArr)
-
+    if(state === STATE.WATCHLIST){
+        console.log('hi')
+        render(data, btnUuid)
+    }
 }
 // localStorage.clear()
 
@@ -130,11 +156,8 @@ function getMoviesList(moviesData){
             </div>
         `
     }
-    const moviesStr = moviesData.map( movie => { 
-        if(!watchlistArr){
-            inWatchlist = false
-        } else {
-        }
+    const moviesStr = moviesData.map( movie => {
+        console.log(movie)
         inWatchlist = !!watchlistArr.find( movieInfo => movie.imdbID === movieInfo.imdbID)
             return `
             <div class="movie">
@@ -182,7 +205,13 @@ function getMoviePlot(btnEl) {
     const plot = decodeURIComponent(btnEl.parentElement.dataset.moviePlot)
     return `
         ${btnEl.dataset.isExpanded === 'false' ? plot.substring(0, maxLength) : plot}
-        <button id="read-more-btn" data-is-expanded="${btnEl.dataset.isExpanded}" data-read-more-btn-uuid="${btnEl.dataset.readMoreBtnUuid}">${btnEl.dataset.isExpanded === 'false' ? '...Read more' : 'Read less'} </button>
+        <button id="read-more-btn"
+        data-is-expanded="${btnEl.dataset.isExpanded}"
+        data-read-more-btn-uuid="${btnEl.dataset.readMoreBtnUuid}">
+            ${btnEl.dataset.isExpanded === 'false' ?
+            '...Read more' :
+            'Read less'}
+        </button>
     `
 }
 
@@ -196,7 +225,7 @@ function toggleAddToWatchlistBtnState(btnUuid, inWatchlist) {
 }
 
 async function render(data, btnUuid){
-    console.log(state)
+    console.log('hi')
     switch(state){
         case STATE.SEARCHED:
             const moviesHTML = await getMoreMoviesInfo(data)
@@ -208,18 +237,19 @@ async function render(data, btnUuid){
             break
         case STATE.STARTEXPLORE:
             document.getElementById('movies-list').innerHTML = `
-            <div class="start-explore">
-            <i class="fa-solid fa-film fa-2xl"
-            style="color: #d5d5d5; 
-            font-size:70px; 
-            height: 10px;"></i>
-            <p class="start-explore-text">Start exploring</p>
-            </div>`
+                <div class="start-explore">
+                    <i class="fa-solid fa-film fa-2xl"
+                    style="color: #d5d5d5; 
+                    font-size:70px; 
+                    height: 10px;"></i>
+                    <p class="start-explore-text">Start exploring</p>
+                </div>`
             break
         case STATE.WATCHLIST:
-            getMoviesList(watchlistArr)
+            console.log(watchlistArr)
+            document.getElementById('movies-list').innerHTML = getMoviesList(watchlistArr)
             break
     }
 }
-console.log(watchlistArr)
+
 render(null, null)
