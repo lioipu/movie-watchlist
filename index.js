@@ -6,21 +6,16 @@ let isExpanded = false
 let fullText = ''
 // How many characters you want to show initially
 const maxLength = 140
-let watchlistArr = []
+let watchlistArr = []   
 let state
-let pageState
+let pageState = window.location.pathname
 const STATE = {
     SEARCHED: 'SEARCHED',
     VIEWMORE: 'VIEWMORE',
-    STARTEXPLORE: 'STARTEXPLOE',
+    STARTEXPLORE: 'STARTEXPLORE',
     WATCHLIST:'WATCHLIST',
     EMPTYWATCHLIST: 'EMPTYWATCHLIST'
 }
-
-window.addEventListener('load', e => {
-    pageState = window.location.pathname
-    console.log(pageState)
-})
 
 document.addEventListener( 'click', async e => {
     if(e.target.id === 'search-btn'){
@@ -31,39 +26,57 @@ document.addEventListener( 'click', async e => {
         addToWatchlistBtnClickHandler(e.target.dataset.addToWatchlistBtnUuid)
     } 
 })
-
 // localStorage.clear()
 if(JSON.parse(localStorage.getItem('watchlist'))){
     watchlistArr = JSON.parse(localStorage.getItem('watchlist'))
 } else {
     watchlistArr = []
 }
-console.log(JSON.parse(localStorage.getItem('pageState')))
-if(JSON.parse(localStorage.getItem('pageState'))){
+
+if(localStorage.getItem('pageState')){
+    pageState = localStorage.getItem('pageState')
     // page was changed
-    if(JSON.parse(localStorage.getItem('pageState')) !== pageState){
-        localStorage.setItem('pageState', JSON.stringify(pageState))
-        // checking which page we are at and defining the state based on it.
+    console.log(window.location.pathname)
+    console.log(localStorage.getItem('pageState'))
+    if(window.location.pathname !== pageState){
+        localStorage.setItem('pageState', window.location.pathname)
+        pageState = window.location.pathname
+        // set the state depending on the page were get into
         if(window.location.pathname === '/index.html'){
-            if(JSON.parse(localStorage.getItem('state'))){
-                state = STATE.STARTEXPLORE
-                localStorage.setItem('state', JSON.stringify(state))
-            }
-        } else if(window.location.pathname === '/watchlist.html'){
-            if(JSON.parse(localStorage.getItem('state'))){
-                if(watchlistArr.length === 0){
-                    state = STATE.EMPTYWATCHLIST
-                    localStorage.setItem('state', JSON.stringify(state))
-                } else {
-                    state = STATE.WATCHLIST
-                    localStorage.setItem('state', JSON.stringify(state))
-                }
+            state = STATE.STARTEXPLORE
+            localStorage.setItem('state', JSON.stringify(state))
+        } else if(window.location.pathname === '/watchlist.html') {
+            if(watchlistArr.length === 0){
+                state = STATE.EMPTYWATCHLIST
+                localStorage.setItem('state',JSON.stringify(state))
+            } else {
+                state = STATE.WATCHLIST
+                localStorage.setItem('state',JSON.stringify(state))
             }
         }
     }
+
 } else {
     localStorage.setItem('pageState', pageState)
 }
+
+if(JSON.parse(localStorage.getItem('state'))){
+    state = JSON.parse(localStorage.getItem('state'))
+} else {
+    if(window.location.pathname === '/index.html') {
+        state = STATE.STARTEXPLORE
+        localStorage.setItem('state',JSON.stringify(state))
+    } else if(window.location.pathname === '/watchlist.html') {
+        if(watchlistArr.length === 0){
+            state = STATE.EMPTYWATCHLIST
+            localStorage.setItem('state',JSON.stringify(state))
+        } else {
+            state = STATE.WATCHLIST
+            localStorage.setItem('state',JSON.stringify(state))
+        }
+    }
+}
+
 
 function updateLocalStorage(){
     localStorage.setItem('watchlist', JSON.stringify(watchlistArr))
@@ -120,9 +133,12 @@ async function addToWatchlistBtnClickHandler(btnUuid){
         toggleAddToWatchlistBtnState(btnUuid, 'false')
         watchlistArr.splice(index, 1)
     }
+    
+    if(watchlistArr.length === 0){
+        state = STATE.EMPTYWATCHLIST
+    }
     updateLocalStorage()
-    if(state === STATE.WATCHLIST){
-        console.log('hi')
+    if(state === STATE.WATCHLIST || state === STATE.EMPTYWATCHLIST){
         render(data, btnUuid)
     }
 }
@@ -156,11 +172,11 @@ function getMoviesList(moviesData){
             </div>
         `
     }
-    const moviesStr = moviesData.map( movie => {
-        console.log(movie)
+    const moviesStr = moviesData.map( ( movie, index ) => {
+        console.log(index)
         inWatchlist = !!watchlistArr.find( movieInfo => movie.imdbID === movieInfo.imdbID)
             return `
-            <div class="movie">
+            <div class="movie ${index !== moviesData.length - 1 ? `not-last-movie` : ''}">
                 <img class="movie-poster" src="${movie.Poster}" alt="a movie poster">
                 <div class="movie-content">
                     <div class="section">
@@ -224,8 +240,12 @@ function toggleAddToWatchlistBtnState(btnUuid, inWatchlist) {
         Watchlist`
 }
 
+function setupPageState(){
+
+}
+
 async function render(data, btnUuid){
-    console.log('hi')
+    console.log(state)
     switch(state){
         case STATE.SEARCHED:
             const moviesHTML = await getMoreMoviesInfo(data)
@@ -249,7 +269,23 @@ async function render(data, btnUuid){
             console.log(watchlistArr)
             document.getElementById('movies-list').innerHTML = getMoviesList(watchlistArr)
             break
-    }
-}
+        case STATE.EMPTYWATCHLIST:
+            document.getElementById('movies-list').innerHTML = `
+                <div class="start-explore">
+                    <p class="start-explore-text">Your watchlist is looking a little empty...</p>
+                    <a href="index.html" style="color: black">
+                        <i class="fa fa-plus-circle"
+                        aria-hidden="true" 
+                        style="font-size: 22px;color: #363636;" ></i> 
+                        Let’s add some movies!
+                    </a>
+                </div>
+            `            
+        }
 
-render(null, null)
+}
+if(state === STATE.SEARCHED){
+    searchBtnClickHandler()
+} else {
+    render(null, null)
+}

@@ -58,12 +58,17 @@ a {
 
 /************************** LAYOUT *************************/
 
-.movie{
+.movie {
     display: flex;
-    margin-top: 2.75em;
+    padding-top:  1.6em;
+    padding-bottom: 1.6em;
     gap: 4%;
     width: 100%;
+    
+}
 
+.not-last-movie{
+    border-bottom: 1.5px solid #E5E7EB
 }
 
 .section {
@@ -96,6 +101,7 @@ h1 {
 
 #movies-list{
     width: 85%;
+    padding-top: 2.5em;
     padding-bottom: 2.5em;
     margin: auto auto;
 }
